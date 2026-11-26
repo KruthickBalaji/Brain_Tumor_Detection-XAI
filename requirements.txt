@@ -1,0 +1,12 @@
+ultralytics>=8.0.0
+torch
+torchvision
+opencv-python
+matplotlib
+numpy
+pillow
+grad-cam
+fastapi
+uvicorn
+python-multipart
+jinja2

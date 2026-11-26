@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Brain Tumor Detection & Clinical Explainability Platform | YOLOv8 + Grad-CAM</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="/static/css/styles.css" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              500: '#0284c7',
+              600: '#0369a1',
+              700: '#075985',
+              900: '#0c4a6e',
+            },
+            clinical: {
+              glioma: '#ef4444',
+              meningioma: '#f59e0b',
+              notumor: '#10b981',
+              pituitary: '#8b5cf6',
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen transition-colors duration-300 font-sans antialiased selection:bg-cyan-500 selection:text-white">
+
+  <!-- Navigation / Header -->
+  <header class="border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-50 transition-colors">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20 text-white">
+          <i data-lucide="brain-circuit" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
+            Brain Tumor Detection & Explainability Platform
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
+              <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 mr-1.5 animate-pulse"></span>
+              Clinical XAI v2.0
+            </span>
+          </h1>
+          <p class="text-xs text-slate-400">Deep Learning Diagnostic Support System &bull; Classifying Glioma, Meningioma, Pituitary & No Tumor</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <!-- Architecture Badge -->
+        <div class="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/60 text-xs text-slate-300">
+          <i data-lucide="cpu" class="w-4 h-4 text-cyan-400"></i>
+          <span>Architecture: <strong class="text-white font-semibold">YOLOv8 + Grad-CAM</strong></span>
+        </div>
+
+        <!-- Team Credits -->
+        <div class="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/60 text-xs text-slate-300">
+          <i data-lucide="users" class="w-4 h-4 text-emerald-400"></i>
+          <span>Team: <strong class="text-emerald-300 font-semibold">AI Medical Lab</strong></span>
+        </div>
+
+        <!-- Theme Toggle -->
+        <button id="themeToggleBtn" type="button" aria-label="Toggle Theme" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white transition">
+          <i id="themeIcon" data-lucide="sun" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    
+    <!-- Top Hero Banner -->
+    <div class="mb-8 p-6 rounded-2xl bg-gradient-to-r from-slate-800/90 via-slate-800/50 to-cyan-950/40 border border-slate-700/70 shadow-xl relative overflow-hidden">
+      <div class="relative z-10 max-w-3xl">
+        <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20 mb-3">
+          <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
+          Evidence-Based Diagnostic Assist
+        </div>
+        <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white mb-2">
+          Transparent AI-Driven Neuroimaging Analysis
+        </h2>
+        <p class="text-sm text-slate-300 leading-relaxed">
+          Upload axial, sagittal, or coronal T1/T2-weighted MRI brain scans. The platform deploys an optimized YOLO classification network and generates PyTorch Grad-CAM heatmaps to visually isolate pathological regions for clinical validation.
+        </p>
+      </div>
+      <!-- Background Ambient Glow -->
+      <div class="absolute -right-10 -bottom-10 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+    </div>
+
+    <!-- Grid Layout: Left (Upload & Controls) | Right (Inference & XAI Results) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      
+      <!-- LEFT COLUMN: Input & Upload (5 cols) -->
+      <div class="lg:col-span-5 space-y-6">
+        
+        <!-- Upload Card -->
+        <div class="bg-slate-800/80 rounded-2xl border border-slate-700/80 p-6 shadow-xl backdrop-blur transition-all">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-base font-semibold text-white flex items-center gap-2">
+              <i data-lucide="upload-cloud" class="w-5 h-5 text-cyan-400"></i>
+              MRI Scan Ingestion
+            </h3>
+            <span class="text-xs text-slate-400">Supports JPG, PNG, JPEG</span>
+          </div>
+
+          <!-- Drag and Drop Zone -->
+          <div id="dropZone" class="group relative border-2 border-dashed border-slate-600 hover:border-cyan-500 rounded-xl p-6 text-center cursor-pointer transition-all duration-200 bg-slate-900/50 hover:bg-slate-900/80">
+            <input type="file" id="fileInput" accept="image/png, image/jpeg, image/jpg" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+            
+            <div id="uploadPrompt" class="space-y-3">
+              <div class="w-14 h-14 mx-auto rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center group-hover:scale-110 group-hover:border-cyan-500/50 transition-all text-cyan-400">
+                <i data-lucide="image-plus" class="w-7 h-7"></i>
+              </div>
+              <div>
+                <p class="text-sm font-medium text-slate-200">
+                  <span class="text-cyan-400 hover:underline">Click to browse</span> or drag and drop
+                </p>
+                <p class="text-xs text-slate-400 mt-1">High-resolution brain MRI scans (up to 20MB)</p>
+              </div>
+            </div>
+
+            <!-- Uploaded Preview -->
+            <div id="previewContainer" class="hidden relative">
+              <img id="imagePreview" src="" alt="MRI Preview" class="w-full h-64 object-contain rounded-lg border border-slate-700 bg-black/40" />
+              <button id="removeImageBtn" type="button" class="absolute top-2 right-2 p-1.5 rounded-full bg-slate-900/80 hover:bg-red-600 text-white border border-slate-700 transition z-20" title="Remove image">
+                <i data-lucide="x" class="w-4 h-4"></i>
+              </button>
+              <div id="fileInfoBadge" class="mt-2 text-xs text-slate-300 font-mono truncate"></div>
+            </div>
+          </div>
+
+          <!-- Quick Test Samples -->
+          <div class="mt-4 pt-4 border-t border-slate-700/60">
+            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <i data-lucide="flask-conical" class="w-3.5 h-3.5 text-cyan-400"></i>
+              Load Quick Test Case
+            </p>
+            <div class="grid grid-cols-4 gap-2" id="sampleButtonsContainer">
+              <button type="button" data-sample="glioma" class="sample-btn px-2 py-1.5 rounded-lg bg-slate-900/70 hover:bg-red-950/40 border border-slate-700 hover:border-red-500/50 text-[11px] font-medium text-slate-300 hover:text-red-300 transition text-center truncate">
+                Glioma
+              </button>
+              <button type="button" data-sample="meningioma" class="sample-btn px-2 py-1.5 rounded-lg bg-slate-900/70 hover:bg-amber-950/40 border border-slate-700 hover:border-amber-500/50 text-[11px] font-medium text-slate-300 hover:text-amber-300 transition text-center truncate">
+                Meningioma
+              </button>
+              <button type="button" data-sample="pituitary" class="sample-btn px-2 py-1.5 rounded-lg bg-slate-900/70 hover:bg-purple-950/40 border border-slate-700 hover:border-purple-500/50 text-[11px] font-medium text-slate-300 hover:text-purple-300 transition text-center truncate">
+                Pituitary
+              </button>
+              <button type="button" data-sample="notumor" class="sample-btn px-2 py-1.5 rounded-lg bg-slate-900/70 hover:bg-emerald-950/40 border border-slate-700 hover:border-emerald-500/50 text-[11px] font-medium text-slate-300 hover:text-emerald-300 transition text-center truncate">
+                No Tumor
+              </button>
+            </div>
+          </div>
+
+          <!-- Analyze CTA Button -->
+          <button id="analyzeBtn" disabled class="mt-6 w-full py-3 px-4 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-cyan-600/20 flex items-center justify-center gap-2 transition duration-200">
+            <i data-lucide="sparkles" class="w-4 h-4"></i>
+            <span>Run Diagnostic & Grad-CAM Analysis</span>
+          </button>
+        </div>
+
+        <!-- Clinical Target Classes Guide -->
+        <div class="bg-slate-800/60 rounded-2xl border border-slate-700/60 p-5 text-xs text-slate-300 space-y-2.5">
+          <div class="font-semibold text-white flex items-center gap-2 text-sm">
+            <i data-lucide="info" class="w-4 h-4 text-cyan-400"></i>
+            Target Diagnostic Classifications
+          </div>
+          <div class="grid grid-cols-2 gap-2 text-slate-300">
+            <div class="p-2 rounded-lg bg-slate-900/50 border border-slate-800 flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0"></span>
+              <div>
+                <p class="font-medium text-white">Glioma</p>
+                <p class="text-[10px] text-slate-400">Intra-axial glial origin</p>
+              </div>
+            </div>
+            <div class="p-2 rounded-lg bg-slate-900/50 border border-slate-800 flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0"></span>
+              <div>
+                <p class="font-medium text-white">Meningioma</p>
+                <p class="text-[10px] text-slate-400">Extra-axial meningeal layer</p>
+              </div>
+            </div>
+            <div class="p-2 rounded-lg bg-slate-900/50 border border-slate-800 flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-purple-500 shrink-0"></span>
+              <div>
+                <p class="font-medium text-white">Pituitary</p>
+                <p class="text-[10px] text-slate-400">Sellar / parasellar region</p>
+              </div>
+            </div>
+            <div class="p-2 rounded-lg bg-slate-900/50 border border-slate-800 flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0"></span>
+              <div>
+                <p class="font-medium text-white">No Tumor</p>
+                <p class="text-[10px] text-slate-400">Unremarkable brain tissue</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT COLUMN: Results & Explainability (7 cols) -->
+      <div class="lg:col-span-7 space-y-6">
+
+        <!-- Default Blank State -->
+        <div id="emptyState" class="h-full min-h-[460px] bg-slate-800/40 rounded-2xl border-2 border-dashed border-slate-700/80 flex flex-col items-center justify-center p-8 text-center">
+          <div class="w-16 h-16 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-500 mb-4">
+            <i data-lucide="scan-eye" class="w-8 h-8"></i>
+          </div>
+          <h4 class="text-base font-semibold text-slate-300">Awaiting MRI Scan Ingestion</h4>
+          <p class="text-sm text-slate-400 max-w-sm mt-1">
+            Upload an MRI scan on the left or click one of the quick test cases to trigger the YOLO classifier and generate explainable Grad-CAM heatmaps.
+          </p>
+        </div>
+
+        <!-- Skeleton Loading State -->
+        <div id="loadingState" class="hidden space-y-6 animate-pulse">
+          <div class="p-6 bg-slate-800/80 rounded-2xl border border-slate-700/80">
+            <div class="h-8 bg-slate-700 rounded-lg w-1/3 mb-4"></div>
+            <div class="h-4 bg-slate-700 rounded w-2/3"></div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="h-64 bg-slate-800/80 rounded-2xl border border-slate-700/80"></div>
+            <div class="h-64 bg-slate-800/80 rounded-2xl border border-slate-700/80"></div>
+          </div>
+          <div class="p-6 bg-slate-800/80 rounded-2xl border border-slate-700/80 space-y-3">
+            <div class="h-4 bg-slate-700 rounded w-1/4"></div>
+            <div class="h-3 bg-slate-700 rounded w-full"></div>
+            <div class="h-3 bg-slate-700 rounded w-5/6"></div>
+          </div>
+        </div>
+
+        <!-- Results Container -->
+        <div id="resultsContainer" class="hidden space-y-6">
+          
+          <!-- Untrained Model Warning Banner -->
+          <div id="untrainedWarningBanner" class="hidden p-4 rounded-2xl bg-amber-500/10 border border-amber-500/40 text-amber-700 dark:text-amber-200 text-xs flex items-start gap-3">
+            <i data-lucide="alert-triangle" class="w-5 h-5 text-amber-500 dark:text-amber-400 shrink-0 mt-0.5"></i>
+            <div>
+              <p class="font-semibold text-amber-800 dark:text-amber-300 text-sm">Untrained Fallback Model Active (yolov8m-cls.pt)</p>
+              <p class="mt-0.5 opacity-90">
+                <code>weights/best.pt</code> was not found, so predictions currently use generic ImageNet weights rather than a brain-tumor-trained model. Train the model with <code>train.py</code> to enable real tumor classification.
+              </p>
+            </div>
+          </div>
+
+          <!-- Top Diagnosis Badge -->
+          <div class="p-6 bg-slate-800/90 rounded-2xl border border-slate-700/80 shadow-xl backdrop-blur relative overflow-hidden">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <span class="text-xs uppercase tracking-wider font-semibold text-slate-400 flex items-center gap-1.5">
+                  <i data-lucide="stethoscope" class="w-4 h-4 text-cyan-400"></i>
+                  Primary Diagnostic Inference
+                </span>
+                <div class="flex items-center gap-3 mt-1">
+                  <h3 id="resDiagnosisLabel" class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                    --
+                  </h3>
+                  <span id="resBadgeStatus" class="px-3 py-1 rounded-full text-xs font-bold border uppercase">
+                    --
+                  </span>
+                </div>
+              </div>
+
+              <!-- Confidence Gauge -->
+              <div class="text-right">
+                <span class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Model Confidence</span>
+                <div class="text-3xl font-black text-cyan-400 font-mono" id="resConfidence">
+                  0.0%
+                </div>
+              </div>
+            </div>
+
+            <!-- Global Confidence Bar -->
+            <div class="mt-4 w-full bg-slate-900 rounded-full h-2.5 overflow-hidden border border-slate-700">
+              <div id="resConfidenceBar" class="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full transition-all duration-700" style="width: 0%"></div>
+            </div>
+          </div>
+
+          <!-- Side-by-Side Visual Comparison Cards -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            
+            <!-- Left Card: Original Input MRI -->
+            <div class="bg-slate-800/80 rounded-2xl border border-slate-700/80 p-4 shadow-lg flex flex-col">
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                  <i data-lucide="file-image" class="w-4 h-4 text-blue-400"></i>
+                  Original Input MRI
+                </span>
+                <span class="text-[11px] px-2 py-0.5 rounded bg-slate-900 text-slate-400 border border-slate-700 font-mono">224 x 224</span>
+              </div>
+              <div class="relative bg-black/60 rounded-xl overflow-hidden flex-1 flex items-center justify-center min-h-[220px] border border-slate-700">
+                <img id="resOriginalImage" src="" alt="Original MRI" class="max-h-[260px] w-full object-contain" />
+              </div>
+            </div>
+
+            <!-- Right Card: Grad-CAM Heatmap -->
+            <div id="xaiCardWrapper" class="bg-slate-800/80 rounded-2xl border border-cyan-500/40 p-4 shadow-lg shadow-cyan-500/5 flex flex-col relative transition-colors">
+              <div class="flex items-center justify-between mb-3">
+                <span id="xaiHeaderTitle" class="text-xs font-semibold text-cyan-300 flex items-center gap-1.5">
+                  <i data-lucide="flame" class="w-4 h-4 text-amber-400"></i>
+                  <span>Grad-CAM Feature Activation</span>
+                </span>
+                <span id="xaiHeaderBadge" class="text-[11px] px-2 py-0.5 rounded bg-cyan-950/60 text-cyan-300 border border-cyan-500/30 font-medium">Explainable XAI</span>
+              </div>
+              <div class="relative bg-black/60 rounded-xl overflow-hidden flex-1 flex items-center justify-center min-h-[220px] border border-slate-700">
+                <img id="resHeatmapImage" src="" alt="Grad-CAM Heatmap" class="max-h-[260px] w-full object-contain" />
+                <!-- Legend Overlay -->
+                <div id="camLegendContainer" class="absolute bottom-2 right-2 px-2 py-1 rounded bg-slate-900/80 backdrop-blur border border-slate-700 text-[10px] text-slate-300 flex items-center gap-1">
+                  <span>Activation:</span>
+                  <div class="w-12 h-2 rounded bg-gradient-to-r from-blue-600 via-green-400 via-yellow-400 to-red-600"></div>
+                  <span class="text-red-400 font-bold">High</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Class Probabilities Breakdown -->
+          <div class="p-6 bg-slate-800/80 rounded-2xl border border-slate-700/80 shadow-xl">
+            <h4 class="text-sm font-semibold text-white mb-4 flex items-center justify-between">
+              <span class="flex items-center gap-2">
+                <i data-lucide="bar-chart-3" class="w-4 h-4 text-cyan-400"></i>
+                Multiclass Probability Distribution
+              </span>
+              <span class="text-xs font-normal text-slate-400">Softmax Normalized</span>
+            </h4>
+
+            <div class="space-y-3.5" id="probabilitiesContainer">
+              <!-- Rendered dynamically by main.js -->
+            </div>
+          </div>
+
+          <!-- Clinical Explainability Note Box -->
+          <div class="p-5 bg-gradient-to-br from-slate-800/90 to-blue-950/30 rounded-2xl border border-blue-500/30 shadow-lg text-xs leading-relaxed text-slate-300 space-y-2">
+            <div class="font-semibold text-white flex items-center gap-2 text-sm">
+              <i data-lucide="microscope" class="w-4 h-4 text-cyan-400"></i>
+              Clinical Neuro-Oncology Insights
+            </div>
+            <p id="clinicalNoteText">
+              The Grad-CAM saliency map highlights regions where the convolution filters triggered maximum activations. In medical MRI diagnostics, this illuminates hyperintense mass lesions, dural attachments, or sellar expansion corresponding to the identified pathology.
+            </p>
+            <div class="pt-2 flex items-center gap-4 text-[11px] text-slate-400 border-t border-slate-700/50">
+              <span class="flex items-center gap-1">
+                <i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-400"></i>
+                Heatmap targets final backbone layer
+              </span>
+              <span class="flex items-center gap-1">
+                <i data-lucide="lock" class="w-3.5 h-3.5 text-cyan-400"></i>
+                Zero data retention / HIPAA friendly
+              </span>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="mt-16 border-t border-slate-800 bg-slate-900/60 py-6 text-center text-xs text-slate-500 transition-colors">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <p>Brain Tumor Detection & Clinical Explainability Platform &bull; Academic & Clinical Research Prototype</p>
+      <div class="flex items-center space-x-4">
+        <span>PyTorch</span>
+        <span>&bull;</span>
+        <span>Ultralytics YOLO</span>
+        <span>&bull;</span>
+        <span>Grad-CAM</span>
+        <span>&bull;</span>
+        <span>FastAPI</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="/static/js/main.js"></script>
+</body>
+</html>

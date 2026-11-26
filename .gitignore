@@ -1,0 +1,32 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Large temporary bundles & archives
+colab_training_bundle.zip
+*.zip
+*.tar.gz
+yolov8m-cls.pt
+
+# Ultralytics & training runs
+runs/
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Scratch / IDE
+.vscode/
+.idea/
+scratch/
